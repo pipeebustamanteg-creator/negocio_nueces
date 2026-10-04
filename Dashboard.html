@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Negocio de Nueces</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 25px; }
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: center; }
+        .card h3 { margin: 0; font-size: 14px; color: #7f8c8d; text-transform: uppercase; }
+        .card p { margin: 10px 0 0 0; font-size: 24px; font-weight: bold; color: #27ae60; }
+        .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 20px; }
+        .chart-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .loading { text-align: center; font-size: 18px; color: #555; margin-top: 50px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🌰 Panel de Control - Negocio de Nueces</h1>
+    
+    <div id="loading" class="loading">Cargando datos desde Google Drive...</div>
+
+    <div id="dashboard-content" style="display: none;">
+        <!-- Tarjetas de Resumen -->
+        <div class="cards-grid">
+            <div class="card">
+                <h3>Venta Total Acumulada</h3>
+                <p id="lblTotalDinero">$0</p>
+            </div>
+            <div class="card">
+                <h3>Kilos Totales Vendidos</h3>
+                <p id="lblTotalKilos">0 kg</p>
+            </div>
+            <div class="card">
+                <h3>Ventas de Hoy</h3>
+                <p id="lblVentasHoy">$0</p>
+            </div>
+            <div class="card">
+                <h3>Total Transacciones</h3>
+                <p id="lblTotalTransacciones">0</p>
+            </div>
+        </div>
+
+        <!-- Gráficos -->
+        <div class="charts-grid">
+            <div class="chart-card">
+                <canvas id="graficoProductos"></canvas>
+            </div>
+            <div class="chart-card">
+                <canvas id="graficoHoras"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const URL_SCRIPT = "TU_URL_DE_APPS_SCRIPT_AQUI";
+
+    fetch(URL_SCRIPT)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('dashboard-content').style.display = 'block';
+            procesarDatos(data);
+        })
+        .catch(error => {
+            document.getElementById('loading').innerText = "Error al cargar los datos del dashboard.";
+            console.error(error);
+        });
+
+    function procesarDatos(registros) {
+        let totalDinero = 0;
+        let totalKilos = 0;
+        let ventasHoyMonto = 0;
+        let productosConteo = {};
+        let horasConteo = Array(24).fill(0);
+
+        const hoyStr = new Date().toDateString();
+
+        registros.forEach(r => {
+            let precio = parseFloat(r.precio) || 0;
+            let cantidad = parseFloat(r.cantidad) || 0;
+            let fechaReg = new Date(r.fecha);
+
+            totalDinero += precio;
+            totalKilos += cantidad;
+
+            // Ventas de hoy
+            if (fechaReg.toDateString() === hoyStr) {
+                ventasHoyMonto += precio;
+            }
+
+            // Productos
+            let prod = r.producto || "Otro";
+            productosConteo[prod] = (productosConteo[prod] || 0) + cantidad;
+
+            // Hora peak
+            let hora = fechaReg.getHours();
+            horasConteo[hora]++;
+        });
+
+        // Mostrar en tarjetas
+        document.getElementById('lblTotalDinero').innerText = "$" + totalDinero.toLocaleString('es-CL');
+        document.getElementById('lblTotalKilos').innerText = totalKilos.toFixed(1) + " kg";
+        document.getElementById('lblVentasHoy').innerText = "$" + ventasHoyMonto.toLocaleString('es-CL');
+        document.getElementById('lblTotalTransacciones').innerText = registros.length;
+
+        // Gráfico de Productos (Kilos por tipo)
+        const ctxProd = document.getElementById('graficoProductos').getContext('2d');
+        new Chart(ctxProd, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(productosConteo),
+                datasets: [{
+                    data: Object.values(productosConteo),
+                    backgroundColor: ['#27ae60', '#2980b9', '#f39c12', '#8e44ad', '#e74c3c']
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: { display: true, text: 'Distribución de Kilos por Producto' }
+                }
+            }
+        });
+
+        // Gráfico de Horas Peak
+        const ctxHoras = document.getElementById('graficoHoras').getContext('2d');
+        new Chart(ctxHoras, {
+            type: 'bar',
+            data: {
+                labels: Array.from({length: 24}, (_, i) => i + ':00 hrs'),
+                datasets: [{
+                    label: 'Ventas por hora',
+                    data: horasConteo,
+                    backgroundColor: '#3498db'
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: { display: true, text: 'Horas Peak de Ventas' }
+                }
+            }
+        });
+    }
+</script>
+
+</body>
+</html>
