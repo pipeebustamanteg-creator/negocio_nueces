@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Ventas - Negocio de Nueces</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 90vh; }
+        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+        h2 { color: #2c3e50; text-align: center; margin-bottom: 20px; }
+        label { font-weight: bold; color: #34495e; display: block; margin-top: 15px; }
+        select, input, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+        button { background-color: #27ae60; color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; font-size: 18px; cursor: pointer; margin-top: 25px; font-weight: bold; }
+        button:hover { background-color: #219653; }
+        .mensaje { text-align: center; margin-top: 15px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>🌰 Registro de Ventas</h2>
+    <form id="ventaForm">
+        <label for="producto">Tipo de Producto:</label>
+        <select id="producto" required>
+            <option value="">Seleccione...</option>
+            <option value="Saco">Saco</option>
+            <option value="A granel con cáscara">A granel con cáscara</option>
+            <option value="Peladas (Kilo)">Peladas (Kilo)</option>
+            <option value="Peladas (Medio Kilo)">Peladas (Medio Kilo)</option>
+            <option value="Repostería">Repostería</option>
+        </select>
+
+        <label for="cantidad">Cantidad (Kilos / Unidades):</label>
+        <input type="number" id="cantidad" step="0.1" required placeholder="Ej: 2">
+
+        <label for="precio">Precio Total ($):</label>
+        <input type="number" id="precio" required placeholder="Ej: 15000">
+
+        <label for="notas">Observaciones (Opcional):</label>
+        <textarea id="notas" rows="2" placeholder="Ej: Cliente frecuente"></textarea>
+
+        <button type="submit" id="btnEnviar">Guardar Venta</button>
+        <div class="mensaje" id="mensajeEstado"></div>
+    </form>
+</div>
+
+<script>
+    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbx9krRdwNDqFJtwcdM8tcHJLIoZhm-iPveljFyOYAcPZxmtZTGQ8ijYooRVJjHE3R3F/exec";
+
+    document.getElementById('ventaForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const btn = document.getElementById('btnEnviar');
+        const estado = document.getElementById('mensajeEstado');
+        btn.disabled = true;
+        btn.innerText = "Guardando...";
+        estado.style.color = "#333";
+        estado.innerText = "Enviando datos al Drive...";
+
+        const datos = {
+            producto: document.getElementById('producto').value,
+            cantidad: document.getElementById('cantidad').value,
+            precio: document.getElementById('precio').value,
+            notas: document.getElementById('notas').value
+        };
+
+        fetch(URL_SCRIPT, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(datos)
+        })
+        .then(() => {
+            estado.style.color = "green";
+            estado.innerText = "¡Venta guardada con éxito en el Drive!";
+            document.getElementById('ventaForm').reset();
+            btn.disabled = false;
+            btn.innerText = "Guardar Venta";
+        })
+        .catch(error => {
+            estado.style.color = "red";
+            estado.innerText = "Error al guardar. Intente de nuevo.";
+            btn.disabled = false;
+            btn.innerText = "Guardar Venta";
+        });
+    });
+</script>
+
+</body>
+</html>
